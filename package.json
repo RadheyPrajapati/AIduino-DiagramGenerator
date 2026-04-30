@@ -1,0 +1,19 @@
+{
+  "name": "diagramgenerator",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "npx playwright install --with-deps chromium"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "Wokwi automation bot API",
+  "dependencies": {
+    "express": "^4.18.2",
+    "playwright": "^1.59.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
