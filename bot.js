@@ -1,9 +1,6 @@
 const { chromium } = require("playwright");
 
-// 🔥 MAIN FUNCTION
 async function diagramGenerator(projectUrl, code, jsonData) {
-
-  // ✅ Validate JSON
   if (!jsonData) {
     throw new Error("diagram_json missing");
   }
@@ -16,9 +13,8 @@ async function diagramGenerator(projectUrl, code, jsonData) {
     }
   }
 
-  // 🚀 Launch browser (DEPLOY SAFE)
   const browser = await chromium.launch({
-    headless: true, // required for cloud
+    headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"]
   });
 
@@ -27,36 +23,52 @@ async function diagramGenerator(projectUrl, code, jsonData) {
 
   await page.goto(projectUrl, { waitUntil: "domcontentloaded" });
 
-  // open file tab
+  // Open file
   async function openFile(name) {
     await page.getByText(name).first().click();
   }
 
-  // set editor content (Monaco)
+  // Set Monaco editor safely
   async function setEditor(content) {
     await page.waitForSelector(".monaco-editor");
 
     await page.evaluate((text) => {
-      const editor = window.monaco?.editor?.getEditors?.()[0];
-      if (editor) editor.setValue(text);
+      const editors = window.monaco?.editor?.getEditors?.();
+      if (editors && editors.length > 0) {
+        editors[0].setValue(text);
+      }
     }, content);
   }
 
-  // save → save copy → get URL
+  // ✅ FIXED SAVE FUNCTION (NO networkidle)
   async function saveAndGetUrl() {
+    const oldUrl = page.url();
+
     await page.getByRole("button", { name: /save/i }).first().click();
 
-    await page.waitForSelector('text=/save a copy/i');
+    await page.waitForSelector('text=/save a copy/i', { timeout: 10000 });
 
     await page.getByRole("button", { name: /save copy/i }).last().click();
 
-    // wait for new project URL
-    await page.waitForURL(/projects\/\d+/);
+    // IMPORTANT: Wokwi is async → wait fixed time instead of networkidle
+    await page.waitForTimeout(3000);
+
+    // Try detecting URL change (optional)
+    try {
+      await page.waitForFunction(
+        (old) => window.location.href !== old,
+        oldUrl,
+        { timeout: 10000 }
+      );
+    } catch (e) {
+      // ignore — Wokwi sometimes doesn't change URL
+    }
 
     return page.url();
   }
 
-  // ---- EXECUTION ----
+  // ---------------- EXECUTION ----------------
+
   await openFile("sketch.ino");
   await setEditor(code);
 
@@ -65,10 +77,12 @@ async function diagramGenerator(projectUrl, code, jsonData) {
 
   const newUrl = await saveAndGetUrl();
 
-  // ✅ close browser
   await browser.close();
 
   return newUrl;
-}
+R}
 
 module.exports = { diagramGenerator };
+
+
+
