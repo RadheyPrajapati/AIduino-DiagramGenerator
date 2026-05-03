@@ -1,8 +1,22 @@
 const { diagramGenerator } = require('./bot');
 const express = require('express');
+const cors = require('cors');
 
 const app = express();
+
 app.use(express.json());
+
+// ✅ CORS CONFIG (IMPORTANT)
+app.use(cors({
+  origin: [
+    "http://localhost:5173", // your frontend
+  ],
+  methods: ["GET", "POST"],
+  credentials: true
+}));
+
+// ✅ handle preflight
+app.options('*', cors());
 
 const PORT = process.env.PORT || 3000;
 
@@ -10,7 +24,6 @@ app.post('/diagramGenerate', async (req, res) => {
   try {
     const { code, diagram_json } = req.body;
 
-    // ✅ validation
     if (!code || !diagram_json) {
       return res.status(400).json({
         error: "code or diagram_json missing"
